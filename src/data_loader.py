@@ -33,10 +33,10 @@ def preprocess_text(titles):
 
 if __name__ == "__main__":
     # Define the path components
-    directory = "sample_data"
+    directory = "sample-data"
     filename = "titles.csv"
     file_path = os.path.join(directory, filename)
-
+    print("path: ", os.getcwd())
     titles = read_and_flatten_data(file_path, test_mode=True)
     preprocessed_titles = preprocess_text(titles)
     print(preprocessed_titles)
