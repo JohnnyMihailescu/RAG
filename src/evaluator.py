@@ -13,10 +13,22 @@ from embedding_generator import query_similar_job_titles
 from llm_prompter import generate_prompt, call_openai, extract_normalized_title
 import random
 import logging
+from dotenv import load_dotenv, find_dotenv
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Load env variables. 
+load_dotenv('C:\git\RAG\project.env')
+# Get the OpenAI API key from environment variables
+api_key = os.getenv("OPENAI_API_KEY")
+
+# Print the API key to verify it is loaded correctly
+if api_key:
+    print(f"OpenAI API key loaded successfully, length: {len(api_key)}")
+else:
+    print("Failed to load OpenAI API key.")
 
 def load_combined_unique_titles(titles_file_path, ipod_file_path):
     """
