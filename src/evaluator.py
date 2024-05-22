@@ -8,12 +8,14 @@ from ragas.metrics import (
     answer_relevancy,
     context_utilization,
 )
-from data_loader import preprocess_text, read_and_flatten_data
-from embedding_generator import query_similar_job_titles
-from llm_prompter import generate_prompt, call_openai, extract_normalized_title
+from data_loader import read_and_flatten_data
+from job_title_preprocessing import filter_non_unique_job_titles
+from embedding_generator import query_similar_items
+from job_title_prompter import generate_job_title_prompt, call_openai, extract_normalized_title
 import random
 import logging
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
+import yaml
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,14 +23,21 @@ logger = logging.getLogger(__name__)
 
 # Load env variables. 
 load_dotenv('C:\git\RAG\project.env')
+logger.info("Current working dir: ", os.getcwd())
+config_file_path = "config.yaml"
 # Get the OpenAI API key from environment variables
 api_key = os.getenv("OPENAI_API_KEY")
 
 # Print the API key to verify it is loaded correctly
 if api_key:
-    print(f"OpenAI API key loaded successfully, length: {len(api_key)}")
+    logger.info(f"OpenAI API key loaded successfully, length: {len(api_key)}")
 else:
-    print("Failed to load OpenAI API key.")
+    logger.info("Failed to load OpenAI API key.")
+
+# Load configuration from config.yaml
+with open(config_file_path, 'r') as f:
+    config = yaml.safe_load(f)
+    logger.info("Config loaded.")
 
 def load_combined_unique_titles(titles_file_path, ipod_file_path):
     """
@@ -45,33 +54,28 @@ def load_combined_unique_titles(titles_file_path, ipod_file_path):
     titles = read_and_flatten_data(titles_file_path)
     ipod_titles = read_and_flatten_data(ipod_file_path)
     
-    # Combine and preprocess the lists of titles
+    # Combine the lists of titles
     combined_titles = list(titles) + list(ipod_titles)
-    preprocessed_titles = preprocess_text(combined_titles)
     
-    # Create a DataFrame to get unique titles
-    df = pd.DataFrame(preprocessed_titles, columns=['title'])
-    title_counts = df['title'].value_counts()
+    # Filter non-unique job titles
+    non_unique_titles = filter_non_unique_job_titles(combined_titles)
     
-    # Filter unique titles
-    unique_titles = title_counts[title_counts == 1].index.tolist()
-    
-    return unique_titles
+    return non_unique_titles
     
 # Evaluate the RAG pipeline
-def evaluate_rag_pipeline(sample_titles, embeddings_path, titles_path, number_of_similar_titles, model_name="gpt-3.5-turbo"):
+def evaluate_rag_pipeline(sample_titles, embeddings_path, titles_path, number_of_similar_titles, model_name, prompt_template):
     results = []
     contexts = []
     
     for job_title in sample_titles:
         normalized_title, similar_titles = normalize_job_title(job_title, embeddings_path, 
-                                                               titles_path, number_of_similar_titles,  model_name)
+                                                               titles_path, number_of_similar_titles, model_name, prompt_template)
         results.append({'original_job_title': job_title, 'normalized_job_title': normalized_title})
         contexts.append(similar_titles)
     
     return pd.DataFrame(results), contexts
 
-def normalize_job_title(job_title, embeddings_path, titles_path, n=5, model_name="gpt-3.5-turbo"):
+def normalize_job_title(job_title, embeddings_path, titles_path, n, model_name, prompt_template):
     """
     Normalizes a job title by querying similar job titles and calling the OpenAI API.
     
@@ -80,16 +84,17 @@ def normalize_job_title(job_title, embeddings_path, titles_path, n=5, model_name
         embeddings_path (str): The path to the saved embeddings.
         titles_path (str): The path to the saved titles.
         n (int): The number of most similar job titles to return.
-        model_name (str): The name of the model to use. Defaults to "gpt-3.5-turbo".
+        model_name (str): The name of the model to use.
+        prompt_template (str): The prompt template to use.
     
     Returns:
         str: The normalized job title.
     """
     # Query the most similar job titles
-    similar_titles = query_similar_job_titles(job_title, embeddings_path, titles_path, n=n)
+    similar_titles = query_similar_items(job_title, embeddings_path, titles_path, n=n)
 
     # Generate prompts for the similar job titles
-    prompt = generate_prompt(job_title, similar_titles)
+    prompt = generate_job_title_prompt(prompt_template, job_title, similar_titles)
 
     # Call the OpenAI API to get the variations
     response = call_openai(prompt, model_name)
@@ -101,27 +106,29 @@ def normalize_job_title(job_title, embeddings_path, titles_path, n=5, model_name
 
 if __name__ == "__main__":
     # Define the path components
-    directory = "sample-data"
-    titles_filename = "kaggle_histories_titles.csv"
-    ipod_filename = "IPOD_titles.csv"
+    directory = "data"
+    titles_filename = config['titles_filename']
+    ipod_filename = config['ipod_filename']
     titles_file_path = os.path.join(directory, titles_filename)
     ipod_file_path = os.path.join(directory, ipod_filename)
-    embeddings_path = os.path.join('embeddings.npy')
-    titles_path = os.path.join('titles.npy')
-    results_output_path = os.path.join(directory, 'normalization_results.csv')
-    ragas_output_path = os.path.join(directory, 'ragas_evaluation_results.csv')
-    test_dataset_sample = 10
-    number_of_similar_titles = 10
+    embeddings_path = config['embedding_path']
+    titles_path = config['titles_path']
+    results_output_path = config['results_output_path']
+    ragas_output_path = config['ragas_output_path']
+    test_dataset_sample = config['test_dataset_sample']
+    number_of_similar_titles = config['number_of_similar_titles']
+    model_name = config['model_name']
+    prompt_template = config['prompt_template']
 
     # Load combined unique job titles
     unique_titles = load_combined_unique_titles(titles_file_path, ipod_file_path)
     
-    # Sample 1000 random titles from the unique titles
+    # Sample random titles from the unique titles
     sample_titles = random.sample(unique_titles, test_dataset_sample)
     
     # Evaluate the RAG pipeline on the sampled titles
     results_df, contexts = evaluate_rag_pipeline(sample_titles, embeddings_path, titles_path, 
-                                                 number_of_similar_titles, model_name="gpt-3.5-turbo")
+                                                 number_of_similar_titles, model_name, prompt_template)
     results_df.to_csv(results_output_path, index=False)
     
     # Prepare dataset for evaluation
@@ -143,8 +150,7 @@ if __name__ == "__main__":
     )
     ragas_df = result.to_pandas()
 
-
-    # Save the ragas results to a CSV file
+    # Save the RAGAs results to a CSV file
     ragas_df.to_csv(ragas_output_path, index=False)
     
     print(f"Evaluation results saved to {ragas_output_path}")

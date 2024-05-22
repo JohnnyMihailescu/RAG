@@ -1,51 +1,29 @@
 import openai
 import logging
 
-PROMPT_TEMPLATE = """
-task: Normalize the given job title by selecting the most common acceptable form from the provided similar titles. 
-Make sure the normalized title retains all valuable information that makes the input title a distinct role/responsibility. 
-Extraneous information that does not signify a distinct role and responsibility should not be retained in the normalized title, 
-this includes things like the company names, department name, location names. 
-Output using the YAML format specified in the example below without any additional text. 
-
-  Input Example:
-    job_title: "Senior Software Engineer at Google"
-    similar_titles:
-      - "Senior Developer at Google"
-      - "Lead Software Engineer"
-      - "Software Engineer at Google"
-      - "software engineer" 
-      - "software developer" 
-      - "Senior Engineer" 
-  Output Example:
-    normalized_title: "Software Engineer"
-
-Here is the input job title and similar titles:
-  job_title: "{title}"
-  similar_titles:
-{similar_titles}
-"""
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def generate_prompt(title, similar_titles):
+def generate_prompt(template, entity, context, entity_type="entity"):
     """
-    Generates a prompt for a job title and a set of similar titles.
+    Generates a prompt for a given entity and a set of context items.
     
     Args:
-        title (str): The job title to generate a prompt for.
-        similar_titles (list): The similar job titles.
+        template (str): The prompt template.
+        entity (str): The entity to generate a prompt for.
+        context (list): The context items related to the entity.
+        entity_type (str): The type of entity. Defaults to "entity".
     
     Returns:
-        str: The prompt for the job title and the similar titles.
+        str: The formatted prompt.
     """
-    # Join the similar titles with newline and space indentation for YAML list format
-    similar_titles_str = '\n'.join([f'    - "{t}"' for t in similar_titles])
+    # Join the context items with newline and space indentation for YAML list format
+    context_str = '\n'.join([f'    - "{item}"' for item in context])
     
-    # Format the PROMPT_TEMPLATE with the title and the similar titles
-    return PROMPT_TEMPLATE.format(title=title, similar_titles=similar_titles_str)
+    # Format the template with the entity and the context items
+    return template.format(query=entity, context=context_str)
+
 
 def call_openai(prompt, model_name="gpt-3.5-turbo", temperature=0.5, max_tokens=4000):
     """

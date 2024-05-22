@@ -3,59 +3,49 @@ import os
 
 def read_and_flatten_data(file_path, max_records=None):
     """
-    Reads job titles from a CSV file and flattens them into a list.
+    Reads data from a CSV file and flattens them into a list.
     
     Args:
-        file_path (str): The path to the CSV file containing job titles.
+        file_path (str): The path to the CSV file containing data.
         max_records (int): The maximum number of records to read from the CSV file.
     
     Returns:
-        list: A list of non-null job titles.
+        list: A list of non-null values from the CSV file.
     """
     data = pd.read_csv(file_path, nrows=max_records)
     flat_list = data.values.ravel('K')
     return flat_list[~pd.isnull(flat_list)]
 
-def preprocess_text(titles):
+def preprocess_text(data):
     """
-    Processes a list of job titles by stripping, and converting to lower case.
+    Processes a list of text by stripping and converting to lower case.
     
     Args:
-        titles (list): A list of job titles.
+        data (list): A list of text.
     
     Returns:
-        list: The preprocessed job titles.
+        list: The preprocessed text.
     """
-    return [title.strip().lower() for title in titles]
+    return [str(item).strip().lower() for item in data]
 
-def filter_non_unique_titles(titles):
+def filter_non_unique_items(items):
     """
-    Filters the list of titles to include only non-unique titles (those that occur more than once).
+    Filters the list of items to include only non-unique items (those that occur more than once).
     
     Args:
-        titles (list): The list of job titles.
+        items (list): The list of items.
     
     Returns:
-        list: A list of distinct non-unique job titles.
+        list: A list of distinct non-unique items.
     """
-    # Preprocess titles
-    preprocessed_titles = preprocess_text(titles)
+    # Preprocess items
+    preprocessed_items = preprocess_text(items)
     
-    # Create a DataFrame to count title occurrences
-    df = pd.DataFrame(preprocessed_titles, columns=['title'])
-    title_counts = df['title'].value_counts()
+    # Create a DataFrame to count item occurrences
+    df = pd.DataFrame(preprocessed_items, columns=['item'])
+    item_counts = df['item'].value_counts()
     
-    # Filter non-unique titles
-    non_unique_titles = title_counts[title_counts > 1].index.tolist()
+    # Filter non-unique items
+    non_unique_items = item_counts[item_counts > 1].index.tolist()
     
-    return non_unique_titles
-
-if __name__ == "__main__":
-    # Define the path components
-    directory = "sample-data"
-    filename = "titles.csv"
-    file_path = os.path.join(directory, filename)
-    max_records = 20000
-    titles = read_and_flatten_data(file_path, max_records)
-    preprocessed_titles = preprocess_text(titles)
-    print(preprocessed_titles)
+    return non_unique_items
