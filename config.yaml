@@ -1,0 +1,37 @@
+openai_api_key: "your_api_key_here"
+model_name: "gpt-3.5-turbo"
+temperature: 0.5
+max_tokens: 4000
+embedding_path: "data/embeddings.npy"
+titles_path: "data/titles.npy"
+titles_filename: "kaggle_histories_titles.csv"
+ipod_filename: "IPOD_titles.csv"
+results_output_path: "data/normalization_results.csv"
+ragas_output_path: "data/ragas_evaluation_results.csv"
+test_dataset_sample: 10
+number_of_similar_titles: 10
+
+# This prompt template is specific to the job title normalization use case
+prompt_template: |
+  task: Normalize the given job title by selecting the most common acceptable form from the provided similar titles. 
+  Make sure the normalized job title retains all valuable information that makes the input job title a distinct role/responsibility. 
+  Extraneous information that does not signify a distinct role and responsibility should not be retained in the normalized job title, 
+  this includes things like the company names, department name, location names. 
+  Output using the YAML format specified in the example below without any additional text. 
+
+  Input Example:
+    job_title: "Senior Software Engineer at Google"
+    similar_titles:
+      - "Senior Developer at Google"
+      - "Lead Software Engineer"
+      - "Software Engineer at Google"
+      - "software engineer" 
+      - "software developer" 
+      - "Senior Engineer" 
+  Output Example:
+    normalized_job_title: "Software Engineer"
+
+  Here is the input job title and similar titles:
+    job_title: "{query}"
+    similar_titles:
+    {context}
