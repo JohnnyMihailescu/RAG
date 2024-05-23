@@ -1,6 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
+import random
+import logging
+from dotenv import load_dotenv
+import yaml
 from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import (
@@ -8,36 +12,11 @@ from ragas.metrics import (
     answer_relevancy,
     context_utilization,
 )
-from data_loader import read_and_flatten_data
-from job_title_preprocessing import filter_non_unique_job_titles
-from embedding_generator import query_similar_items
-from job_title_prompter import generate_job_title_prompt, call_openai, extract_normalized_title
-import random
-import logging
-from dotenv import load_dotenv
-import yaml
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Load env variables. 
-load_dotenv('C:\git\RAG\project.env')
-logger.info("Current working dir: ", os.getcwd())
-config_file_path = "config.yaml"
-# Get the OpenAI API key from environment variables
-api_key = os.getenv("OPENAI_API_KEY")
-
-# Print the API key to verify it is loaded correctly
-if api_key:
-    logger.info(f"OpenAI API key loaded successfully, length: {len(api_key)}")
-else:
-    logger.info("Failed to load OpenAI API key.")
-
-# Load configuration from config.yaml
-with open(config_file_path, 'r') as f:
-    config = yaml.safe_load(f)
-    logger.info("Config loaded.")
+from src.data_loader import read_and_flatten_data
+from src.job_title_preprocessing import filter_non_unique_job_titles
+from src.embedding_generator import query_similar_items
+from src.job_title_prompter import generate_job_title_prompt, extract_normalized_title
+from src.llm_prompter import call_openai
 
 def load_combined_unique_titles(titles_file_path, ipod_file_path):
     """
@@ -104,7 +83,7 @@ def normalize_job_title(job_title, embeddings_path, titles_path, n, model_name, 
 
     return normalized_title, similar_titles
 
-if __name__ == "__main__":
+def evaluate_rag_pipeline(config):
     # Define the path components
     directory = "data"
     titles_filename = config['titles_filename']
