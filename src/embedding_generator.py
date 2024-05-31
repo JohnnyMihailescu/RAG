@@ -4,7 +4,6 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 import torch
-from src.job_title_preprocessing import filter_non_unique_job_titles
 
 
 def generate_embeddings(items, model_name='all-MiniLM-L6-v2'):

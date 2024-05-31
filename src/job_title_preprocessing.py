@@ -1,30 +1,32 @@
-from src.data_loader import preprocess_text
-import pandas as pd
+from data_loader import preprocess_text
 
-def filter_non_unique_job_titles(titles):
+def filter_titles_by_occurrences_and_preprocess(title_counts, min_occurrences=2):
     """
-    Filters the list of job titles to include only non-unique titles (those that occur more than once).
+    Filters titles by their occurrences and preprocesses them.
     
     Args:
-        titles (list): The list of job titles.
+        title_counts (dict): A dictionary with titles as keys and their counts as values.
+        min_occurrences (int): Minimum number of occurrences to keep a title.
     
     Returns:
-        list: A list of distinct non-unique job titles.
+        list: A list of preprocessed titles that occur at least min_occurrences times.
     """
+    # Filter titles by occurrences
+    filtered_titles = [title for title, count in title_counts.items() if count >= min_occurrences]
+    
     # Preprocess titles
-    preprocessed_titles = preprocess_text(titles)
+    preprocessed_titles = preprocess_text(filtered_titles)
     
-    # Create a DataFrame to count title occurrences
-    df = pd.DataFrame(preprocessed_titles, columns=['title'])
-    title_counts = df['title'].value_counts()
-    
-    # Filter non-unique titles
-    non_unique_titles = title_counts[title_counts > 1].index.tolist()
-    
-    return non_unique_titles
+    return preprocessed_titles
 
 if __name__ == "__main__":
     # Example usage
-    titles = ["Manager", "Developer", "Manager", "Engineer", "Developer", "CEO"]
-    non_unique_titles = filter_non_unique_job_titles(titles)
-    print(non_unique_titles)
+    title_counts = {
+        "Manager": 3,
+        "Developer": 1,
+        "Engineer": 2,
+        "CEO": 1
+    }
+    min_occurrences = 2
+    filtered_preprocessed_titles = filter_titles_by_occurrences_and_preprocess(title_counts, min_occurrences)
+    print(filtered_preprocessed_titles)

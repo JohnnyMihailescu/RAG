@@ -1,5 +1,5 @@
 import logging
-from src.llm_prompter import generate_prompt
+from llm_prompter import generate_prompt
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

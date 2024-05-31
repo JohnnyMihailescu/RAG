@@ -61,7 +61,7 @@ def load_openai_key():
     Returns:
         str: The OpenAI API key.
     """
-    with open("api_key.txt", "r") as file:
+    with open("../api_key.txt", "r") as file:
         openai_key = file.read().strip()
     return openai_key
 

@@ -12,11 +12,10 @@ from ragas.metrics import (
     answer_relevancy,
     context_utilization,
 )
-from src.data_loader import read_and_flatten_data
-from src.job_title_preprocessing import filter_non_unique_job_titles
-from src.embedding_generator import query_similar_items
-from src.job_title_prompter import generate_job_title_prompt, extract_normalized_title
-from src.llm_prompter import call_openai
+from data_loader import read_and_flatten_data
+from embedding_generator import query_similar_items
+from job_title_prompter import generate_job_title_prompt, extract_normalized_title
+from llm_prompter import call_openai
 
 def load_combined_unique_titles(titles_file_path, ipod_file_path):
     """

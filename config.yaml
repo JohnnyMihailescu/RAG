@@ -2,8 +2,8 @@ openai_api_key: "your_api_key_here"
 model_name: "gpt-3.5-turbo"
 temperature: 0.5
 max_tokens: 4000
-embedding_path: "data/embeddings.npy"
-titles_path: "data/titles.npy"
+embedding_path: "../data/embeddings.npy"
+titles_path: "../data/titles.npy"
 titles_filename: "kaggle_histories_titles.csv"
 ipod_filename: "IPOD_titles.csv"
 results_output_path: "data/normalization_results.csv"
