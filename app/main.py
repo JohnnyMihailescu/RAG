@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import logging
 from dotenv import load_dotenv
 from app.evaluator import normalize_job_title
-from app.embedding_generator import generate_embeddings
+from app.embedding_generator import generate_embeddings, bulk_insert_embeddings_to_elasticsearch
 from app.job_title_preprocessing import filter_titles_by_occurrences_and_preprocess
 
 # Configure logging
@@ -86,24 +86,23 @@ async def api_normalize_job_title(job_title_request: JobTitleRequest):
 # Generate Embeddings endpoint.
 @app.post("/generate_embeddings")
 def api_generate_embeddings(yaml_file: UploadFile = File(...), request: GenerateEmbeddingsRequest = Depends()):
+    
     yaml_data = yaml.safe_load(yaml_file.file)
 
-    # Filter titles 
-    min_occurrences = request.min_occurrences
-
     # Filter titles by occurrences
-    filtered_preprocessed_titles = filter_titles_by_occurrences_and_preprocess(yaml_data, min_occurrences=request.min_occurrences)
+    min_occurrences = request.min_occurrences
+    filtered_preprocessed_titles = filter_titles_by_occurrences_and_preprocess(yaml_data, min_occurrences=min_occurrences)
     
     # Generate embeddings for the filtered titles
-    embeddings, success_count, fail_count = generate_embeddings(filtered_preprocessed_titles)
+    embeddings, gen_success_count, gen_fail_count = generate_embeddings(filtered_preprocessed_titles)
 
-    # Save the embeddings and titles
-    np.save(embeddings_path, embeddings)
-    np.save(titles_path, np.array(filtered_preprocessed_titles))
+
+    # Bulk insert embeddings into Elasticsearch
+    bulk_insert_embeddings_to_elasticsearch(embeddings)
 
     return {
-        "message": "Embeddings generated successfully.",
-        "success_count": success_count,
-        "fail_count": fail_count,
+        "message": "Embeddings generated and stored successfully.",
+        "generation_success_count": gen_success_count,
+        "generation_fail_count": gen_fail_count,
         "filtered_titles_count": len(filtered_preprocessed_titles)
     }
