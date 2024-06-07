@@ -1,5 +1,7 @@
-import openai
+import boto3
 import logging
+import os
+from botocore.exceptions import ClientError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,52 +27,56 @@ def generate_prompt(template, entity, context, entity_type="entity"):
     return template.format(query=entity, context=context_str)
 
 
-def call_openai(prompt, model_name="gpt-3.5-turbo", temperature=0.5, max_tokens=4000):
+def call_bedrock(prompt, model_id="anthropic.claude-3-haiku-20240307-v1:0", temperature=0.5, max_tokens=4000):
     """
-    Calls the OpenAI API for each prompt and returns the responses.
+    Calls the AWS Bedrock API for each prompt and returns the responses.
     
     Args:
-        prompt (str): The prompt to send to the OpenAI API.
-        model_name (str): The name of the model to use. Defaults to "gpt-3.5-turbo".
+        prompt (str): The prompt to send to the AWS Bedrock API.
+        model_id (str): The ID of the model to use. Defaults to "anthropic.claude-3-haiku-20240307-v1:0".
         temperature (float): The temperature parameter for generating responses. Defaults to 0.5.
         max_tokens (int): The maximum number of tokens in the generated response. Defaults to 4000.
     
     Returns:
-        str: The response from the OpenAI API.
+        str: The response from the AWS Bedrock API.
     """
-    api_key = load_openai_key()
-    client = openai.OpenAI(api_key=api_key)
-
-    logger.info(f"Sending prompt to OpenAI: {prompt}")
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens
+    bedrock_client = boto3.client(
+        'bedrock-runtime',
+        region_name='us-east-1',  # Replace with your Bedrock region
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
     )
-    logger.info(f"Received response from OpenAI: {response.choices[0].message.content}")
-    
-    return response.choices[0].message.content.strip()
 
-def load_openai_key():
-    """
-    Loads the OpenAI API key from a text file.
-    
-    Returns:
-        str: The OpenAI API key.
-    """
-    with open("api_key.txt", "r") as file:
-        openai_key = file.read().strip()
-    return openai_key
+    logger.info(f"Sending prompt to Bedrock: {prompt}")
+
+    conversation = [
+        {
+            "role": "user",
+            "content": [{"text": prompt}],
+        }
+    ]
+
+    try:
+        response = bedrock_client.converse(
+            modelId=model_id,
+            messages=conversation,
+            inferenceConfig={"maxTokens": max_tokens, "temperature": temperature, "topP": 0.9},
+        )
+        response_text = response["output"]["message"]["content"][0]["text"]
+        logger.info(f"Received response from Bedrock: {response_text}")
+        return response_text.strip()
+
+    except (ClientError, Exception) as e:
+        logger.error(f"ERROR: Can't invoke '{model_id}'. Reason: {e}")
+        return f"ERROR: Can't invoke '{model_id}'. Reason: {e}"
+
 
 def extract_normalized_title(response):
     """
-    Extracts the normalized job title from the OpenAI API response.
+    Extracts the normalized job title from the Bedrock API response.
     
     Args:
-        response (str): The response from the OpenAI API.
+        response (str): The response from the Bedrock API.
     
     Returns:
         str: The normalized job title.
@@ -79,3 +85,15 @@ def extract_normalized_title(response):
         normalized_title = response.split('normalized_title:')[1].strip().strip('"')
         return normalized_title
     return response
+
+# Example usage
+if __name__ == "__main__":
+    template = "Generate a normalized job title for the entity '{query}' based on the following context:\n{context}"
+    entity = "Senior Software Engineer"
+    context = ["Software Development", "Engineering", "Senior Level"]
+    
+    prompt = generate_prompt(template, entity, context)
+    response = call_bedrock(prompt)
+    normalized_title = extract_normalized_title(response)
+    
+    print(f"Normalized Title: {normalized_title}")
