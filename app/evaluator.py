@@ -11,7 +11,7 @@ from ragas.metrics import (
 from app.data_loader import read_and_flatten_data
 from app.embedding_generator import query_similar_items
 from app.job_title_prompter import generate_job_title_prompt, extract_normalized_title
-from app.llm_prompter import call_openai
+from app.llm_prompter import call_bedrock
 
 def load_combined_unique_titles(titles_file_path, ipod_file_path):
     """
@@ -71,7 +71,7 @@ def normalize_job_title(job_title, embeddings_path, titles_path, n, model_name, 
     prompt = generate_job_title_prompt(prompt_template, job_title, similar_titles)
 
     # Call the OpenAI API to get the variations
-    response = call_openai(prompt, model_name)
+    response = call_bedrock(prompt, model_name)
 
     # Extract the normalized job title from the response
     normalized_title = extract_normalized_title(response)

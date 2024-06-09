@@ -1,12 +1,9 @@
-import numpy as np
 import os
 import yaml
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
-from contextlib import asynccontextmanager
+from fastapi import FastAPI, UploadFile, File, Depends
 import logging
-from dotenv import load_dotenv
 from app.evaluator import normalize_job_title
 from app.embedding_generator import generate_embeddings, bulk_insert_embeddings_to_elasticsearch
 from app.job_title_preprocessing import filter_titles_by_occurrences_and_preprocess
@@ -47,35 +44,12 @@ class EvaluationRequest(BaseModel):
 class GenerateEmbeddingsRequest(BaseModel):
     min_occurrences: Optional[int] = 2
 
-# Load local data for lifespan of the app.
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-
-    # Load config and data from local files. 
-    # Define the path components
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
-    # Load env variables. 
-    load_dotenv('C:\git\RAG\project.env')
-    # Get the OpenAI API key from environment variables
-    api_key = os.getenv("OPENAI_API_KEY")
-
-    # Print the API key to verify it is loaded correctly
-    if api_key:
-        logger.info(f"OpenAI API key loaded successfully, length: {len(api_key)}")
-    else:
-        logger.info("Failed to load OpenAI API key.")
-    yield
-
-
 # Initialize FastAPI app. 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 # Normalize single job title endpoint. 
 @app.post("/normalize_job_title")
-async def api_normalize_job_title(job_title_request: JobTitleRequest):
+def api_normalize_job_title(job_title_request: JobTitleRequest):
     print 
     job_title = job_title_request.job_title
     n_similar = job_title_request.n_similar

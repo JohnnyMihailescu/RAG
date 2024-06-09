@@ -13,11 +13,19 @@ def connect_to_elasticsearch():
     Returns:
         Elasticsearch: The Elasticsearch client.
     """
-    es_client = Elasticsearch("https://localhost:9200", 
-                          api_key="YlpkcjQ0OEJfUTA5YlhhTUpCblU6OWJ5OUVsb2ZSNU9wWlY3MUlpSkpvdw==", 
-                          verify_certs=False,
-                          ssl_show_warn=False)
-    return es_client
+    es_host = os.getenv('ELASTICSEARCH_HOST', 'localhost')
+    es_port = os.getenv('ELASTICSEARCH_PORT', '9200')
+    es = Elasticsearch(
+        hosts=[{'host': es_host, 'port': es_port}],
+        cloud_id=os.getenv('ELASTIC_CLOUD_ID'),
+        http_auth=(os.getenv('ELASTIC_USERNAME'), os.getenv('ELASTIC_PASSWORD'))
+    )
+
+    if es.ping():
+        print("Connected to Elasticsearch")
+    else:
+        print("Could not connect to Elasticsearch")
+    return es
 
 
 def generate_embeddings(items, model_name='all-MiniLM-L6-v2'):
